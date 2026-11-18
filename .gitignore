@@ -1,0 +1,54 @@
+# Rust and packaged build outputs
+/target/
+/dist/
+*.apk
+*.aab
+*.apks
+*.idsig
+
+# Android generated files and machine-specific SDK configuration
+/android/.gradle/
+/android/.kotlin/
+/android/build/
+/android/native-libs/
+/android/local.properties
+
+# Generated Xcode projects, bundles, and user state
+/ios/*.xcodeproj/
+/ios/*.xcworkspace/
+/ios/Info.plist
+/ios/DerivedData/
+/ios/build/
+xcuserdata/
+*.xcuserstate
+*.dSYM/
+*.ipa
+
+# Local configurations can contain server credentials
+/client.json
+profiles.json
+.env
+.env.*
+!.env.example
+!.env.template
+/android/key.properties
+/android/keystore.properties
+
+# Private signing material
+*.keystore
+*.jks
+*.p12
+*.pfx
+*.mobileprovision
+
+# Local editor settings and temporary files
+/.idea/
+/.vscode/
+*.swp
+*.swo
+*~
+*.log
+.DS_Store
+Thumbs.db
+
+# Keep Cargo.lock, .cargo/config.toml, source assets, and shipped .bin patterns.

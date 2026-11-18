@@ -1,0 +1,79 @@
+import { LineEdit } from "std-widgets.slint";
+
+export global Theme {
+    out property <color> canvas: #0b111b;
+    out property <color> surface: #121d2b;
+    out property <color> elevated: #192638;
+    out property <color> line: #263449;
+    out property <color> ink: #f0f5fc;
+    out property <color> muted: #95a6bd;
+    out property <color> mint: #8ae6c8;
+}
+
+export component Action inherits Rectangle {
+    in property <string> text;
+    in property <bool> primary: false;
+    in property <bool> selected: false;
+    in property <bool> enabled: true;
+    callback clicked();
+    min-height: 46px;
+    border-radius: 12px;
+    background: !root.enabled ? #1c2837 : root.primary ? (touch.has-hover ? #acf3db : Theme.mint) : root.selected ? #233a3d : touch.has-hover ? Theme.elevated : transparent;
+    border-width: root.primary || root.selected ? 0px : 1px;
+    border-color: focus.has-focus ? Theme.mint : Theme.line;
+    accessible-role: button;
+    accessible-label: root.text;
+    accessible-enabled: root.enabled;
+    accessible-action-default => { if root.enabled { root.clicked(); } }
+    Text {
+        text: root.text;
+        color: !root.enabled ? Theme.muted : root.primary ? #10251f : root.selected ? Theme.mint : Theme.ink;
+        font-size: 14px;
+        font-weight: 600;
+        horizontal-alignment: center;
+        vertical-alignment: center;
+        overflow: elide;
+    }
+    focus := FocusScope {
+        enabled: root.enabled;
+        key-pressed(event) => {
+            if event.text == " " || event.text == "\n" || event.text == Key.Return {
+                root.clicked();
+                return accept;
+            }
+            return reject;
+        }
+    }
+    touch := TouchArea {
+        enabled: root.enabled;
+        mouse-cursor: pointer;
+        clicked => { focus.focus(); root.clicked(); }
+    }
+}
+
+export component Field inherits VerticalLayout {
+    in property <string> label;
+    in property <string> placeholder;
+    in property <bool> secret: false;
+    in property <bool> enabled: true;
+    in-out property <string> text;
+    spacing: 7px;
+    Text { text: root.label; color: Theme.muted; font-size: 12px; }
+    LineEdit {
+        text <=> root.text;
+        placeholder-text: root.placeholder;
+        input-type: root.secret ? InputType.password : InputType.text;
+        enabled: root.enabled;
+        accessible-label: root.label;
+        min-height: 44px;
+        font-size: 14px;
+    }
+}
+
+export component Detail inherits VerticalLayout {
+    in property <string> label;
+    in property <string> value;
+    spacing: 7px;
+    Text { text: root.label; color: Theme.muted; font-size: 11px; font-weight: 500; }
+    Text { text: root.value; color: Theme.ink; font-size: 14px; overflow: elide; }
+}

@@ -1,0 +1,280 @@
+import { Button, CheckBox, ComboBox, ScrollView, TextEdit } from "std-widgets.slint";
+import { Action, Detail, Field, Theme } from "components.slint";
+
+export component AppWindow inherits Window {
+    title: "Bluesky · Tunnel";
+    preferred-width: 1180px;
+    preferred-height: 820px;
+    min-width: 360px;
+    min-height: 560px;
+    background: Theme.canvas;
+    default-font-family: "DejaVu Sans";
+    default-font-size: 14px;
+    in-out property <int> page: 0;
+    out property <bool> compact: root.width < 760px;
+    in-out property <bool> running: false;
+    in-out property <bool> stopping: false;
+    in-out property <bool> connected: false;
+    in-out property <string> phase: "Ready when you are";
+    in-out property <string> status-message: "Choose your server, then connect to start a local tunnel.";
+    in-out property <string> notice;
+    in-out property <string> uptime: "00:00:00";
+    in-out property <[string]> profile-names;
+    in-out property <int> selected-profile: 0;
+    in-out property <string> profile-name: "My tunnel";
+    in-out property <string> server: "127.0.0.1:443";
+    in-out property <string> identity;
+    in-out property <string> password;
+    in-out property <string> listener: "127.0.0.1:8080";
+    in-out property <int> mode: 0;
+    in-out property <string> destination: "127.0.0.1:8090";
+    in-out property <bool> remember-password: false;
+    in-out property <bool> rotate: true;
+    in-out property <string> config-json;
+    in-out property <string> config-baseline;
+    in-out property <string> activity;
+    in-out property <string> storage-path;
+    in-out property <string> client-pattern: "cli_pattern.bin";
+    in-out property <string> server-pattern: "serv_pattern.bin";
+    in-out property <bool> importing: false;
+    in property <bool> mobile-import: false;
+    in property <bool> android: false;
+    in property <string> background-info;
+    private property <bool> busy: root.running || root.importing;
+    callback toggle-connection();
+    callback save-profile();
+    callback select-profile(int);
+    callback add-profile();
+    callback delete-profile();
+    callback apply-json();
+    callback refresh-json();
+    callback clear-activity();
+    callback remember-changed();
+    callback import-pattern(bool);
+    callback battery-settings();
+    private property <string> mode-name: root.mode == 0 ? "HTTP / HTTPS proxy" : root.mode == 1 ? "TCP forwarding" : "UDP forwarding";
+
+    Rectangle {
+        x: root.safe-area-insets.left;
+        y: root.safe-area-insets.top;
+        width: root.width - root.safe-area-insets.left - root.safe-area-insets.right;
+        height: root.height - root.safe-area-insets.top - root.safe-area-insets.bottom;
+        HorizontalLayout {
+            spacing: 0px;
+            if !root.compact: Rectangle {
+                width: 216px;
+                background: #101925;
+                Rectangle { x: parent.width - 1px; width: 1px; background: Theme.line; }
+                VerticalLayout {
+                    padding: 22px;
+                    spacing: 10px;
+                    HorizontalLayout {
+                        height: 60px;
+                        spacing: 10px;
+                        Rectangle { width: 34px; Image { source: @image-url("../assets/mark.svg"); width: 34px; height: 34px; y: (parent.height - self.height) / 2; } }
+                        VerticalLayout {
+                            spacing: 3px;
+                            Text { text: "bluesky"; color: Theme.ink; font-size: 23px; font-weight: 700; }
+                            Text { text: "T U N N E L"; color: Theme.muted; font-size: 9px; }
+                        }
+                    }
+                    Rectangle { height: 32px; }
+                    Text { text: "WORKSPACE"; color: #687c97; font-size: 10px; height: 26px; }
+                    for label[index] in ["Overview", "Profiles", "Activity", "Settings"]: Action {
+                        text: label;
+                        selected: root.page == index;
+                        clicked => { root.page = index; }
+                    }
+                    Rectangle { vertical-stretch: 1; }
+                    Rectangle {
+                        height: 108px; border-radius: 14px; background: #172535;
+                        VerticalLayout {
+                            padding: 14px; spacing: 8px;
+                            Text { text: "YOUR LOCAL GATEWAY"; color: Theme.mint; font-size: 9px; font-weight: 600; }
+                            Text { text: "One tunnel.\nYour own server."; color: Theme.ink; font-size: 13px; }
+                            Text { text: "Bluesky client  0.1"; color: Theme.muted; font-size: 10px; }
+                        }
+                    }
+                }
+            }
+            VerticalLayout {
+                spacing: 0px;
+                Rectangle {
+                    height: root.compact ? 65px : 86px;
+                    HorizontalLayout {
+                        padding-left: root.compact ? 20px : 32px;
+                        padding-right: root.compact ? 20px : 32px;
+                        spacing: 10px;
+                        if root.compact: Rectangle { width: 28px; Image { source: @image-url("../assets/mark.svg"); width: 28px; height: 28px; y: (parent.height - self.height) / 2; } }
+                        Text { text: root.compact ? "bluesky" : "Personal workspace"; color: Theme.ink; font-size: root.compact ? 22px : 14px; font-weight: 600; vertical-alignment: center; }
+                        Rectangle { horizontal-stretch: 1; }
+                        Rectangle {
+                            width: 8px;
+                            Rectangle { width: 8px; height: 8px; y: (parent.height - self.height) / 2; border-radius: 4px; background: root.connected ? Theme.mint : root.running ? #efc47c : #70829c; }
+                        }
+                        Text { text: root.connected ? "Connected" : root.running ? "Connecting" : "Offline"; color: Theme.muted; font-size: 12px; vertical-alignment: center; }
+                    }
+                }
+                Rectangle { height: 1px; background: Theme.line; }
+                ScrollView {
+                    horizontal-stretch: 1;
+                    vertical-stretch: 1;
+                    VerticalLayout {
+                        padding: root.compact ? 20px : 32px;
+                        spacing: 22px;
+                        HorizontalLayout {
+                            VerticalLayout {
+                                spacing: 8px;
+                                Text { text: root.page == 0 ? "A CLEARER CONNECTION" : root.page == 1 ? "MAKE IT YOURS" : root.page == 2 ? "LIVE FROM YOUR CLIENT" : "UNDER THE HOOD"; color: Theme.mint; font-size: 10px; font-weight: 600; }
+                                Text { text: root.page == 0 ? "Your route. Your rules." : root.page == 1 ? "Connection profiles" : root.page == 2 ? "Tunnel activity" : "Advanced settings"; color: Theme.ink; font-size: root.compact ? 25px : 30px; font-weight: 700; wrap: word-wrap; }
+                                Text { text: root.page == 0 ? "A quiet little gateway to your own server." : root.page == 1 ? "Set up a local proxy or forward a port." : root.page == 2 ? "Connection events, as they happen." : "Use the same client JSON as your terminal app."; color: Theme.muted; font-size: 13px; wrap: word-wrap; }
+                            }
+                        }
+                        if root.notice != "": Rectangle {
+                            min-height: 52px; border-radius: 12px; background: #253346;
+                            HorizontalLayout {
+                                padding: 14px; spacing: 8px;
+                                Text { text: root.notice; color: #e1eaf7; wrap: word-wrap; font-size: 12px; }
+                                Action { text: "×"; width: 32px; clicked => { root.notice = ""; } }
+                            }
+                        }
+                        if root.page == 0: VerticalLayout {
+                            spacing: 20px;
+                            Rectangle {
+                                min-height: root.compact ? 348px : 366px;
+                                border-radius: 24px;
+                                background: #152630;
+                                border-width: 1px; border-color: #2a414b;
+                                VerticalLayout {
+                                    padding: 24px; spacing: 12px;
+                                    HorizontalLayout {
+                                        Text { text: root.profile-name; color: Theme.ink; font-size: 14px; font-weight: 600; overflow: elide; }
+                                        Rectangle { horizontal-stretch: 1; }
+                                        Text { text: root.mode == 0 ? "PROXY" : root.mode == 1 ? "TCP" : "UDP"; color: Theme.mint; font-size: 10px; font-weight: 600; }
+                                    }
+                                    Rectangle {
+                                        height: 145px;
+                                        Rectangle {
+                                            width: 142px; height: 142px; x: (parent.width - self.width) / 2;
+                                            border-radius: 71px; border-width: 1px; border-color: #345257;
+                                            Rectangle {
+                                                x: 15px; y: 15px; width: 112px; height: 112px;
+                                                border-radius: 56px; border-width: 1px; border-color: #456c6b;
+                                                background: #203d41;
+                                                Image { source: @image-url("../assets/shield.svg"); width: 46px; height: 52px; x: (parent.width - self.width) / 2; y: (parent.height - self.height) / 2; }
+                                            }
+                                            Rectangle { x: 117px; y: 24px; width: 12px; height: 12px; border-radius: 6px; background: root.connected ? Theme.mint : root.running ? #efc47c : #6d8e94; border-width: 3px; border-color: #172e36; }
+                                        }
+                                    }
+                                    Text { text: root.phase; color: Theme.ink; font-size: root.compact ? 22px : 26px; font-weight: 600; horizontal-alignment: center; wrap: word-wrap; }
+                                    Text { text: root.connected ? root.server : root.running ? "Your local listener stays open while we reconnect." : "Your next connection starts here."; color: #a6bec9; font-size: 12px; horizontal-alignment: center; wrap: word-wrap; }
+                                    Rectangle { height: 3px; }
+                                    Action { text: root.stopping ? "Stopping…" : root.running ? "Disconnect tunnel" : "Connect tunnel"; primary: true; enabled: !root.stopping; clicked => { root.toggle-connection(); } }
+                                }
+                            }
+                            Rectangle {
+                                min-height: root.compact ? 232px : 160px;
+                                border-radius: 18px; background: Theme.surface; border-width: 1px; border-color: Theme.line;
+                                VerticalLayout {
+                                    padding: 22px; spacing: 20px;
+                                    HorizontalLayout {
+                                        Text { text: "CONNECTION DETAILS"; color: Theme.muted; font-size: 10px; font-weight: 600; }
+                                        Rectangle { horizontal-stretch: 1; }
+                                        Action { text: "Edit profile"; width: 102px; enabled: !root.busy; clicked => { root.page = 1; } }
+                                    }
+                                    if !root.compact: HorizontalLayout {
+                                        spacing: 22px;
+                                        Detail { label: "SERVER"; value: root.server; }
+                                        Detail { label: "LOCAL LISTENER"; value: root.listener; }
+                                        Detail { label: "MODE"; value: root.mode-name; }
+                                        Detail { label: "SESSION UPTIME"; value: root.uptime; }
+                                    }
+                                    if root.compact: VerticalLayout {
+                                        spacing: 20px;
+                                        HorizontalLayout { spacing: 12px; Detail { label: "SERVER"; value: root.server; } Detail { label: "LOCAL LISTENER"; value: root.listener; } }
+                                        HorizontalLayout { spacing: 12px; Detail { label: "MODE"; value: root.mode-name; } Detail { label: "SESSION UPTIME"; value: root.uptime; } }
+                                    }
+                                }
+                            }
+                            Text { text: root.status-message; color: Theme.muted; font-size: 12px; wrap: word-wrap; }
+                            Text { text: root.mode == 0 ? "Point your browser’s HTTP and HTTPS proxy to the local listener.\nOnly traffic sent to this proxy uses the tunnel." : "Send local traffic to the listener to reach your destination through the server."; color: #6f849e; font-size: 11px; wrap: word-wrap; }
+                        }
+                        if root.page == 1: VerticalLayout {
+                            spacing: 18px;
+                            HorizontalLayout {
+                                spacing: 10px;
+                                ComboBox { model: root.profile-names; current-index: root.selected-profile; enabled: !root.busy; selected(value) => { root.select-profile(self.current-index); } min-height: 44px; horizontal-stretch: 1; }
+                                Action { text: "+ New"; width: 86px; enabled: !root.busy; clicked => { root.add-profile(); } }
+                            }
+                            Rectangle {
+                                border-radius: 18px; background: Theme.surface;
+                                VerticalLayout {
+                                    padding: root.compact ? 18px : 26px; spacing: 18px;
+                                    Field { label: "Profile name"; text <=> root.profile-name; enabled: !root.busy; }
+                                    Field { label: "Server address"; placeholder: "tunnel.example.com:443"; text <=> root.server; enabled: !root.busy; }
+                                    Field { label: "Client identity"; placeholder: "alice"; text <=> root.identity; enabled: !root.busy; }
+                                    Field { label: "Client password"; secret: true; placeholder: "Your server-issued password"; text <=> root.password; enabled: !root.busy; }
+                                    CheckBox { text: "Remember password on this device"; checked <=> root.remember-password; enabled: !root.busy; toggled => { root.remember-changed(); } }
+                                    Text { text: "Changes save automatically. Remembered passwords are stored in a private local file, without encryption. Otherwise, enter the password after restarting."; color: Theme.muted; font-size: 11px; wrap: word-wrap; }
+                                    Rectangle { height: 1px; background: Theme.line; }
+                                    Text { text: "TUNNEL MODE"; color: Theme.mint; font-size: 10px; font-weight: 600; }
+                                    ComboBox { model: ["HTTP / HTTPS proxy", "TCP forwarding", "UDP forwarding"]; current-index <=> root.mode; enabled: !root.busy; min-height: 44px; }
+                                    Field { label: "Local listener · IP and port"; text <=> root.listener; enabled: !root.busy; }
+                                    if root.mode != 0: Field { label: "Destination · resolved by the server"; text <=> root.destination; enabled: !root.busy; }
+                                    CheckBox { text: "Rotate sessions automatically"; checked <=> root.rotate; enabled: !root.busy; }
+                                    Text { text: "Failed connections always retry. Rotation closes existing streams.\nYour server must run in multiplexed mode."; color: Theme.muted; font-size: 11px; wrap: word-wrap; }
+                                    HorizontalLayout {
+                                        spacing: 10px;
+                                        Action { text: "Save profile"; primary: true; enabled: !root.busy; clicked => { root.save-profile(); } }
+                                        Action { text: "Delete"; width: 88px; enabled: !root.busy && root.profile-names.length > 1; clicked => { root.delete-profile(); } }
+                                    }
+                                }
+                            }
+                        }
+                        if root.page == 2: VerticalLayout {
+                            spacing: 16px;
+                            Text { text: "This session’s connection events. Stream diagnostics also go to stderr."; color: Theme.muted; font-size: 12px; wrap: word-wrap; }
+                            TextEdit { text: root.activity; read-only: true; min-height: 360px; font-size: 12px; accessible-label: "Connection activity"; }
+                            Action { text: "Clear activity"; clicked => { root.clear-activity(); } }
+                        }
+                        if root.page == 3: VerticalLayout {
+                            spacing: 16px;
+                            Text { text: "PATTERN FILES"; color: Theme.mint; font-size: 10px; font-weight: 600; }
+                            Text { text: root.mobile-import ? "Choose the matching cli_pattern.bin and serv_pattern.bin from Files. Each import is copied into private app storage." : "Enter a file path, then import to keep a private copy for this profile. Choose the matching pair used by your server."; color: Theme.muted; font-size: 12px; wrap: word-wrap; }
+                            Field { label: "Client pattern · cli_pattern.bin"; text <=> root.client-pattern; enabled: !root.busy && !root.mobile-import; }
+                            Action { text: root.mobile-import ? "Choose cli_pattern.bin…" : "Import client pattern"; enabled: !root.busy; clicked => { root.import-pattern(false); } }
+                            Field { label: "Server pattern · serv_pattern.bin"; text <=> root.server-pattern; enabled: !root.busy && !root.mobile-import; }
+                            Action { text: root.mobile-import ? "Choose serv_pattern.bin…" : "Import server pattern"; enabled: !root.busy; clicked => { root.import-pattern(true); } }
+                            if root.importing: Text { text: "Waiting for file selection…"; color: Theme.muted; wrap: word-wrap; }
+                            Rectangle { height: 1px; background: Theme.line; }
+                            Text { text: root.background-info; color: Theme.muted; font-size: 12px; wrap: word-wrap; }
+                            if root.android: Action { text: "Battery optimization settings"; clicked => { root.battery-settings(); } }
+                            Rectangle { height: 1px; background: Theme.line; }
+                            Text { text: "Paste a terminal client configuration, or edit the current one below.\nApply JSON saves it, respecting Remember password.\nRelative pattern paths resolve inside app storage."; color: Theme.muted; font-size: 12px; wrap: word-wrap; }
+                            Text { text: "This editor includes the client password. Keep shared copies private."; color: #efc47c; font-size: 11px; wrap: word-wrap; }
+                            TextEdit { text <=> root.config-json; enabled: !root.busy; min-height: 380px; font-size: 12px; accessible-label: "Client configuration JSON"; }
+                            HorizontalLayout {
+                                spacing: 10px;
+                                Action { text: "Apply JSON"; primary: true; enabled: !root.busy; clicked => { root.apply-json(); } }
+                                Action { text: "Load from form"; enabled: !root.busy; clicked => { root.refresh-json(); } }
+                            }
+                            Text { text: "APP STORAGE\n" + root.storage-path; color: Theme.muted; font-size: 11px; wrap: word-wrap; }
+                        }
+                        Rectangle { vertical-stretch: 1; }
+                    }
+                }
+                if root.compact: Rectangle {
+                    height: 72px; background: #101925;
+                    Rectangle { x: 0px; y: 0px; height: 1px; background: Theme.line; }
+                    HorizontalLayout {
+                        padding: 10px; spacing: 5px;
+                        for label[index] in ["Home", "Profiles", "Activity", "Settings"]: Action {
+                            text: label; selected: root.page == index;
+                            clicked => { root.page = index; }
+                        }
+                    }
+                }
+            }
+        }
+    }
+}

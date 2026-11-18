@@ -1,0 +1,22 @@
+[build]
+rustflags = ["-C", "opt-level=3"]
+
+# Host-native instructions must never leak into an ARM cross build.
+[target.x86_64-unknown-linux-gnu]
+rustflags = ["-C", "target-cpu=native", "-C", "opt-level=3"]
+
+# Direct Cargo builds retain portable crypto acceleration. The Android script
+# adds NDK/linker settings and an optional preset requiring crypto instructions.
+[target.aarch64-linux-android]
+rustflags = [
+    "-C", "target-cpu=generic",
+    "-C", "target-feature=+neon",
+    "--cfg", "aes_armv8",
+    "--cfg", "polyval_armv8",
+]
+
+[target.aarch64-apple-ios]
+rustflags = ["--cfg", "aes_armv8", "--cfg", "polyval_armv8"]
+
+[target.aarch64-apple-ios-sim]
+rustflags = ["--cfg", "aes_armv8", "--cfg", "polyval_armv8"]

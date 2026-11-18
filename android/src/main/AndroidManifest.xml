@@ -1,0 +1,24 @@
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <uses-permission android:name="android.permission.INTERNET" />
+    <uses-permission android:name="android.permission.WAKE_LOCK" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_SPECIAL_USE" />
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+    <application android:label="Bluesky Tunnel" android:icon="@drawable/bluesky"
+        android:allowBackup="false" android:dataExtractionRules="@xml/data_extraction_rules" android:hasCode="true">
+        <activity android:name=".TunnelActivity" android:exported="true"
+            android:launchMode="singleTop" android:configChanges="orientation|keyboardHidden|screenSize|screenLayout|density|uiMode"
+            android:theme="@android:style/Theme.Material.NoActionBar">
+            <meta-data android:name="android.app.lib_name" android:value="bluesky_obfs_t_gui" />
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity>
+        <service android:name=".TunnelService" android:exported="false"
+            android:stopWithTask="false" android:foregroundServiceType="specialUse">
+            <property android:name="android.app.PROPERTY_SPECIAL_USE_FGS_SUBTYPE"
+                android:value="User-started persistent local obfuscated proxy and TCP/UDP port forwarding" />
+        </service>
+    </application>
+</manifest>
