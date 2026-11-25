@@ -203,10 +203,15 @@ async fn serve(profile: Profile, generation: u64, events: &EventSink) -> io::Res
             Phase::Connecting,
             &format!("Authenticating with {}…", settings.server_address),
         );
-        let connected = tokio::time::timeout(
-            settings.proxy_setup_timeout(),
-            ForwardClient::connect(cfg.clone(), &settings.server_address, settings.limits()),
-        )
+        let connected = tokio::time::timeout(settings.proxy_setup_timeout(), async {
+            let cfg = cfg.clone();
+            let limits = settings.limits();
+            if settings.multipath.is_some() {
+                ForwardClient::connect_multipath(cfg, settings.server_address.clone(), limits).await
+            } else {
+                ForwardClient::connect(cfg, &settings.server_address, limits).await
+            }
+        })
         .await;
         let (client, driver) = match connected {
             Ok(Ok(session)) => session,

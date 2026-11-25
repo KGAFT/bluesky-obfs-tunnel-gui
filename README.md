@@ -2,7 +2,7 @@
 
 A Rust + Slint client for `../bluesky-obfs-tunnel`. A dark, touch-friendly interface adapts from a desktop sidebar to phone navigation below 760 logical pixels. It runs the tunnel in-process, without launching the terminal client.
 
-- HTTP/HTTPS proxy, TCP forwarding, and UDP forwarding.
+- HTTP/HTTPS proxy, TCP forwarding, and UDP forwarding over single-path or multipath transport.
 - Multiple local profiles, masked passwords, and opt-in credential storage.
 - Live authentication, reconnect, failure, and session uptime indicators.
 - Automatic session rotation and persistent local listeners during reconnects.
@@ -23,6 +23,8 @@ cargo run --locked -- --mobile
 Use a recent Rust toolchain (tested with 1.101.0-nightly). Building the tunnel's BoringSSL dependency also needs a C/C++ compiler, CMake, Perl, Git, and libclang. Linux needs the normal Wayland/X11 development environment and fontconfig. The desktop uses Slint's Winit backend and software renderer; no Qt installation is needed.
 
 Open **Profiles**, enter your server address and server-issued identity/password, choose a mode and local listener, and save. Then connect from **Overview**. Your server must use multiplexed mode. For HTTP mode, configure the consuming application's HTTP and HTTPS proxy to the local listener, such as `127.0.0.1:8080`.
+
+Enable **Use multipath transport** in the profile if your server has a `multipath` configuration. Newly enabled profiles use the library default of ten paths. To set a custom limit, use **Settings → Load from form**, edit `multipath.max_paths_per_client`, and select **Apply JSON**. The limit includes the first path. Use `1` to cap the session at one path or `0` to allow unlimited paths.
 
 For TCP/UDP modes, the destination is reached from the **server's** network. A destination of `127.0.0.1:8090` means port 8090 on the server. Only applications using the local proxy or forwarding port send traffic through this client.
 

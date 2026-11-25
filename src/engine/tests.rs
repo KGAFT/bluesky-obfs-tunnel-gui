@@ -33,11 +33,19 @@ fn cancelling_handshake_releases_tcp_and_udp_listeners_before_acknowledging_stop
     profile.settings.client_identity = "alice".into();
     profile.settings.client_password = "secret".into();
     crate::profiles::resolve_patterns(&mut profile, dir.path());
-    for (index, mode) in [Mode::Http, Mode::Tcp, Mode::Udp].into_iter().enumerate() {
+    let scenarios = [None, Some(Default::default())]
+        .into_iter()
+        .flat_map(|multipath| {
+            [Mode::Http, Mode::Tcp, Mode::Udp]
+                .into_iter()
+                .map(move |mode| (multipath.clone(), mode))
+        });
+    for (index, (multipath, mode)) in scenarios.enumerate() {
         let vacant = std::net::TcpListener::bind("127.0.0.1:0").unwrap();
         let address = vacant.local_addr().unwrap();
         drop(vacant);
         profile.mode = mode;
+        profile.settings.multipath = multipath;
         profile.settings.local_proxy_bind = address.to_string();
         let generation = index as u64 * 2 + 1;
         engine.send(Command::Start(generation, Box::new(profile.clone())));

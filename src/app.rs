@@ -49,6 +49,14 @@ fn from_form(ui: &AppWindow, base: &Profile) -> Profile {
     profile.settings.local_proxy_bind = ui.get_listener().trim().into();
     profile.settings.client_identity = ui.get_identity().trim().into();
     profile.settings.client_password = ui.get_password().into();
+    if ui.get_multipath() {
+        profile
+            .settings
+            .multipath
+            .get_or_insert_with(Default::default);
+    } else {
+        profile.settings.multipath = None;
+    }
     profile.settings.reconnect.enabled = ui.get_rotate();
     profile.settings.patterns.client_pattern_path = ui.get_client_pattern().trim().into();
     profile.settings.patterns.server_pattern_path = ui.get_server_pattern().trim().into();
@@ -73,6 +81,7 @@ fn show_profile(ui: &AppWindow, profiles: &Profiles) {
     ui.set_listener(profile.settings.local_proxy_bind.as_str().into());
     ui.set_identity(profile.settings.client_identity.as_str().into());
     ui.set_password(profile.settings.client_password.as_str().into());
+    ui.set_multipath(profile.settings.multipath.is_some());
     ui.set_rotate(profile.settings.reconnect.enabled);
     ui.set_client_pattern(
         profile
@@ -627,9 +636,15 @@ mod tests {
             pending_import: None,
         }));
         let _timer = bind(&ui, state.clone());
+        assert!(!ui.get_multipath());
+        ui.set_multipath(true);
         ui.set_server("example.org:443".into());
         ui.invoke_save_profile();
         let loaded = profiles::load(dir.path()).unwrap();
+        assert_eq!(
+            loaded.profiles[0].settings.multipath,
+            Some(Default::default())
+        );
         assert_eq!(
             loaded.profiles[0].settings.server_address,
             "example.org:443"
@@ -657,8 +672,15 @@ mod tests {
         );
         ui.set_server("example.org:443".into());
         // JSON with omitted credentials must retain the actual form values.
-        ui.set_config_json(r#"{"server_address":"example.org:443"}"#.into());
+        ui.set_config_json(
+            r#"{"server_address":"example.org:443","multipath":{"max_paths_per_client":2}}"#.into(),
+        );
         ui.invoke_apply_json();
+        assert!(ui.get_multipath());
+        ui.invoke_refresh_json();
+        let settings: bluesky_obfs_tunnel::config::ClientSettings =
+            serde_json::from_str(&ui.get_config_json()).unwrap();
+        assert_eq!(settings.multipath.unwrap().max_paths_per_client, 2);
         assert_eq!(ui.get_identity(), "alice");
         assert_eq!(ui.get_password(), "secret");
         assert_eq!(
@@ -700,7 +722,16 @@ mod tests {
         assert_eq!(ui.get_selected_profile(), 1);
         ui.invoke_delete_profile();
         assert_eq!(ui.get_selected_profile(), 0);
+        assert!(ui.get_multipath());
         assert_eq!(ui.get_password(), "secret");
+        ui.set_multipath(false);
+        ui.invoke_save_profile();
+        assert!(
+            profiles::load(dir.path()).unwrap().profiles[0]
+                .settings
+                .multipath
+                .is_none()
+        );
         ui.window().set_size(slint::LogicalSize::new(390.0, 844.0));
         assert!(ui.get_compact());
         ui.set_identity("".into());

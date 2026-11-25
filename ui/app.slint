@@ -29,6 +29,7 @@ export component AppWindow inherits Window {
     in-out property <int> mode: 0;
     in-out property <string> destination: "127.0.0.1:8090";
     in-out property <bool> remember-password: false;
+    in-out property <bool> multipath: false;
     in-out property <bool> rotate: true;
     in-out property <string> config-json;
     in-out property <string> config-baseline;
@@ -221,6 +222,8 @@ export component AppWindow inherits Window {
                                     ComboBox { model: ["HTTP / HTTPS proxy", "TCP forwarding", "UDP forwarding"]; current-index <=> root.mode; enabled: !root.busy; min-height: 44px; }
                                     Field { label: "Local listener · IP and port"; text <=> root.listener; enabled: !root.busy; }
                                     if root.mode != 0: Field { label: "Destination · resolved by the server"; text <=> root.destination; enabled: !root.busy; }
+                                    CheckBox { text: "Use multipath transport"; checked <=> root.multipath; enabled: !root.busy; }
+                                    Text { text: "Match the multipath setting on your server."; color: Theme.muted; font-size: 11px; wrap: word-wrap; }
                                     CheckBox { text: "Rotate sessions automatically"; checked <=> root.rotate; enabled: !root.busy; }
                                     Text { text: "Failed connections always retry. Rotation closes existing streams.\nYour server must run in multiplexed mode."; color: Theme.muted; font-size: 11px; wrap: word-wrap; }
                                     HorizontalLayout {
